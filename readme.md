@@ -57,10 +57,65 @@ kubectl port-forward service/hello-minikube 7080:8080
 # http://localhost:7080
 ```
 
-## Hello-World deployment
+# Hello-World deployment
 
 ``` shell
 kubectl create -f deployment.xml               # deploy hello-world app and expose as service
 minikube ip                                    # get ip
+```
+
+# Deploy my own app
+
+``` sh
+# create a folder for this app
+mkdir my-hello 
+cd my-hello
+
+npm init
+npm install express --save
+touch index.js
+vi index.js              # expose 8080 having one http-get method to say something
+
+# verify with docker
+docker build -t georgezhou888/my-hello:v1.0.0 .
+docker run -p 8080:8080 georgezhou888/my-hello:v1.0.0 
+curl http://localhost:8080                # see the output of hello-something
+
+vi package.json
+# change scripts content to {"start": "node index.js"}
+
+vi .dockerignore
+# contents 
+node_modules
+Dockerfile
+deployment.yml
+# end .dockerignore
+
+vi Dockerfile
+# contents
+FROM node:carbon
+WORKDIR /usr/src/app
+COPY package.json .
+COPY package-lock.json .
+RUN npm install
+COPY . .
+EXPOSE 8080
+CMD [ "npm", "start" ]
+# end Dockerfile
+
+# build docker image
+docker build -t georgezhou888/my-hello:v1.0.1 .
+docker login
+docker push georgezhou888/my-hello:v1.0.1
+
+vi deployment.xml
+# see https://github.com/zpc888/k8s-my-hello/blob/master/my-hello/deployment.yml
+
+kubuctl create -f deployment.xml
+
+minikube ip                                   # get cluster ip
+
+kubuctl get nodes -o wide                     # when at least one pod is running
+curl http://${minikube-ip-output}:30002       # see the result
 ```
 
