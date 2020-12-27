@@ -42,8 +42,25 @@ minikube start
 minikube ssh
 minikube stop
 minikube addones list                    # to check dashboard enabled
+
+minikube addons enable dashboard
 ```
 
+* Deploy applications
 
+```shell
+kubectl create deployment hello-minikube --image=k8s.gc.io/echoserver:1.4
+kubectl get services hello-minikube
+minikube service hello-minkube
+kubectl port-forward service/hello-minikube 7080:8080
 
-* 
+# http://localhost:7080
+```
+
+## Hello-World deployment
+
+``` shell
+kubectl create -f deployment.xml               # deploy hello-world app and expose as service
+minikube ip                                    # get ip
+```
+

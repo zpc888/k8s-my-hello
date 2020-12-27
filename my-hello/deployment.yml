@@ -1,0 +1,40 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: myhelloservice
+spec:
+  selector:
+    app: my-hello
+  ports:
+    - protocol: "TCP"
+      # port accessible inside cluster
+      port: 8081
+      # port accessible inside the pod
+      targetPort: 8080
+      # port accessible outside cluster
+      nodePort: 30002
+  type: LoadBalancer
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-hello-deployment
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: my-hello
+  template:
+    metadata:
+      labels:
+        app: my-hello
+    spec:
+      containers:
+        - name: my-hello
+          image: georgezhou888/my-hello:v1.0.1
+          ports:
+            - containerPort: 8080
+
