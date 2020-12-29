@@ -294,13 +294,199 @@ all managing processes are done by master processes / node
   * install Ingress Controller in Minikube - minikube addons enable ingress
     * automatically starts the K8s Nginx implementation of Ingress Controller
   * kubectl get pods -n kube-system -o wide   => check ingress-nginx-controller-{id} is running
-* 
+* configure kubernetes-dashboard using Ingress
+  * kubectl get namespace
+  * kubectl get all -n kubernetes-dashboard
 
-## Helm - Package Manager
+### Ingress default http backend
 
-## Volumes - Persisting Data in K8s
+* when any request has no mapping, it will redirect to default backend so that it can display a meaningful name
+* kubectl describe ingress dashboard-ingress -n kubernetes-dashboard
+* you can create a service for that, just using that service name to default-http-backend to customize the error message
+
+### Multiple paths for same hosts
+
+* multiple path
+
+### Multiple sub-domains or domains
+
+* multiple host
+
+### Configuring TLS Certificate
+
+* tls:
+* secretName --> pointing to kubernetes.io/tls
+* Secret component must be in the same namespace as the Ingress component
+
+## Helm - Package ManagerVolumes - Persisting Data in K8s
+
+### Helm explained
+
+* Main concepts of Helm
+* Helm changes a lot between version, so understand the basic common principles and use cases
+
+### What is Helm
+
+* Package Manager for Kubernetes, like yum, apt linux system package manager
+  * To package YAML files
+  * distribute them in public and private repositories
+* Buldle of YAML Files
+* Create your own Helm Charts with Helm
+* Push them to Helm Repository / Consume some others' from Helm Repository for reusing
+* Sharing Helm Charts
+* helm search ...
+* helm hub
+
+### Helm as Templating Engine
+
+* Define a common bluepring
+* Dynamic values are replaced by placeholder {{ .ValueYamlFileName.key1.key2 }}
+* Values defined either via yaml file or with --set flag
+
+### Deploying same app across different environments
+
+* Development
+* Staging
+* Production
+
+### Helm Chart Structure
+
+* Directory Structure
+  * To level folder name = name of the chart
+  * Chart.yaml = meta info about chart
+  * values.yaml = values for the template files - default values you can override later
+  * charts sub-folder = chart dependencies
+  * templates sub-folder = templates stored
+  * optionally other files such as readme and/or license, etc
+* helm install [chartname]
+  * helm install --set version=2.0.0
+  * heml install --values-file=my-values.yaml 
+
+### Helm Release Management
+
+* Helm Version 2 comes in 2 parts:
+  * heml CLI (Client)
+  * server (Tiller)
+  * Tiller has too much power inside of K8s cluster
+  * Security Issue
+  * helm install/upgrade/rollback [chart-name]
+* Heml Version 3 removes Tiller (server part) to solve security issue
+
+## Kubernetes Volumes explained
+
+* how to persist data in kubernetes using volumes
+  * Persistent Volume
+  * Persistent Volume Claim
+  * Storage Class
+* The need for Volumes
+  * Storage that doesn't depend on the pod lifecycle
+  * Storage available for all nodes, not a specific one
+  * high available to survive even if the cluster crashes
+
+### Persistence Volume
+
+* a cluster resource
+* create via YAML file
+  * kind: PersistentVolume
+  * spec: e.g. how much storage?
+* Needs acutal physical storage, like local hard driver, nfs server, cloud-storage, etc
+* who makes it availabe to the cluster??
+  * administrator takes care of it, create and manage by yourself
+  * external plugin to your cluster
+* Use that physical storage in the <b>spec</b> section
+* Depending on storage type, spec attributes differ
+* Persistent Volumes are NOT namespaced -- globally in cluster
+* Local vs. Remote Volume Types
+* K8s Administrator and K8s User -- who creates PV
+  * Administrator should configure the storage and volume
+  * User should just use PV via Persistent Volume Claim
+* Levels of Volume abstractions
+  * Pod requests the volume through the PV claim
+  * claim tries to find a volume in cluster stasifyng the claim
+  * claims must be in the same namespace
+  * once the pod finds the matched volume
+  * Volume is mounted into the Pod
+  * Volume is mounted into Container
+* Why so many abstractions? -- decoupling
+
+### Storage Class
+
+* Storage Class provisions Persistent Volumes dynamically when PersistentVolumeClaim claims it
+* kind: StorageClass
+* provisioner: kubernetes.io/aws-ebs
+* each storage backend has own provisioner
+  * internal provisioner - kubernetes.io
+  * external provisioner
+  * configure parameters for storage we want to request for PV
+* Another abstraction level
+  * abstracts underlying storage provider
+  * parameters for that storage
+* Storage Class usage
+  * Requested by PersistentVolumeClaim
+* PVC -> SC -> PV
 
 ## K8s StatefulSet - Deploying Stateful Apps
 
+### What is StatefulSet?
+
+* application saves the transaction data in somehow
+* Deployment of stateful and stateless applications
+  * deploy stateless app using Deployment
+  * deploy stateful app using StatefulSet
+* POD identity
+  * next pod won't create until the previous one is created and running
+  * Delete will use the reverse order
+* Pod endpoints
+  * loadbalancer serice, which is the same as deployment
+  * individual service name for each pod, which is different from deployment
+  * so it will have predicatable pod name and service name -- ${pod-name}.${service-govern-name} -- fixed individual DNS name
+  * when pod restarts
+    * IP address changes
+    * but name and endpoint stays the same
+* Stateful applications not perfect for the containerized environments
+
 ## K8s Services
+
+### Why Services?
+
+* Each Pod has its own IP address
+  * Pods are ephemeral - are destroyed frequently
+* Service:
+  * stable IP address
+  * load balancing
+  * loose coupling
+  * within & outside cluster
+
+### ClusterIP Services
+
+* default type
+* Multiple-Ports Service
+
+### Headless Services
+
+* Client wants to communicate with 1 sepcific Pod directly
+* Pods want to talk directly with specific Pod
+* So, not randomly selected via Service
+* Use Case: Stateful applications, like databases: mysql, mongodb, elasticsearch
+* Pod replicas are not identical
+* Client needs to figure out IP addresses of each Pod
+  * Option 1 - API call to K8s API Server ?
+    * makes app to tired to K8s API
+    * inefficient
+  * Option 2 - DNS Lookup
+    * DNS Lookup for Service - returns single IP address (ClusterIP)
+    * Set ClusterIP to "None" - returns Pod IP address instead
+
+### NodePort Services
+
+* Not secure
+* NodePort service is not configured for production environments
+* ![See diagram](/home/zpc/works/study/k8s/NodePort-Service.png)
+
+### LoadBalancer Services
+
+* Becomes Accessible externally through cloud provdiers LoadBalancer
+* NodePort and ClusterIP Service are created automatically
+* LoadBalancer Service is an extension of NodePort Service
+* NodePort Service is an extension of CLusterIP Service
 
